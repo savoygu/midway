@@ -4,8 +4,10 @@ import {
   MidwayContainer,
   MidwayEnvironmentService,
   MidwayInformationService,
-  MidwayLoggerService
+  MidwayLoggerService,
+  MidwayPriorityManager
 } from '../../src';
+import { ILogger } from '@midwayjs/logger';
 
 class MockLoggerFactory extends LoggerFactory<any, any> {
   maps = new Map();
@@ -23,6 +25,16 @@ class MockLoggerFactory extends LoggerFactory<any, any> {
 
   removeLogger(loggerName: string) {
   }
+
+  createContextLogger(ctx: any, appLogger: ILogger, contextOptions: any): ILogger {
+    return undefined;
+  }
+
+  getDefaultMidwayLoggerConfig(appInfo): {
+    midwayLogger: { default?: any; clients?: { [p: string]: any } }
+  } {
+    return {} as any;
+  }
 }
 
 describe('/test/service/loggerService.test.ts', () => {
@@ -32,6 +44,7 @@ describe('/test/service/loggerService.test.ts', () => {
     container.bindClass(MidwayInformationService);
     container.bindClass(MidwayConfigService)
     container.bindClass(MidwayLoggerService);
+    container.bindClass(MidwayPriorityManager);
 
     container.registerObject('baseDir', '');
     container.registerObject('appDir', '');

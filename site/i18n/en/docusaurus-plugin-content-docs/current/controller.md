@@ -1,4 +1,4 @@
-import Tabs from '@theme/Tabs';
+​	import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 # Routing and controller
@@ -263,9 +263,12 @@ export class UserController {
 }
 ```
 
-If the key in the Query String is repeated, the `ctx.query` parameter is only the value of the key when it appears for the first time. Any subsequent key is ignored.
+:::caution
+**Note** EggJS is different from other frameworks. When the key in the Query String is repeated, `ctx.query` only takes the value of the first occurrence of the key, and subsequent occurrences will be ignored.
 
-For example, `GET /user?uid = 1 & uid = 2` is `{ uid: '1' }` by using `ctx.query`.
+For example, the value obtained by `GET /user?uid=1&uid=2` through `ctx.query` is `{ uid: '1' }`.
+
+:::
 
 
 
@@ -947,6 +950,71 @@ export class HomeController {
 :::info
 The response type cannot be modified after the response flow is closed (after response.end).
 :::
+
+
+
+### Streaming response
+
+If you want to stream data back, you can use the `write` and `end` methods on the Node.js raw response object.
+
+```typescript
+import { Controller, Get, Inject, sleep } from '@midwayjs/core';
+import { Context } from '@midwayjs/koa';
+
+@Controller('/')
+export class HomeController {
+   @Inject()
+   ctx: Context;
+  
+   @Get('/')
+   async home() {
+     this.ctx.status = 200;
+     this.ctx.set('Transfer-Encoding', 'chunked');
+     for (let i = 0; i < 100; i++) {
+       await sleep(100);
+       this.ctx.res.write('abc'.repeat(100));
+     }
+    
+     this.ctx.res.end();
+   }
+}
+```
+
+
+
+## Internal redirection
+
+Starting from v3.12.0, the framework provides an internal redirect API `ctx.forward(url)`, which only supports koa/egg type.
+
+The difference from external redirection is that internal redirection does not modify the URL of the browser, but only flows inside the program.
+
+```typescript
+import { Controller, Get, Inject } from '@midwayjs/core';
+
+@Controller('/')
+export class HomeController {
+   @Inject()
+   ctx: Context;
+
+   @Get('/')
+   async home() {
+     return this.ctx.forward('/api');
+   }
+  
+   @Get('/api')
+   async api() {
+     return 'abc';
+   }
+}
+```
+
+Note that there are some rules for internal redirects:
+
+* 1. Redirection will retain all parameters of the original route, that is, transparently transmit the entire ctx
+
+* 2. Redirection can only be done in the same http method
+
+* 3. Redirection will not execute Web Middleware again, and guards will not be executed, but interceptors and parameter decorators will be executed
 
 
 

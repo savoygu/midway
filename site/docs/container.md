@@ -208,7 +208,7 @@ export class B {
 }
 ```
 
-在 v3.10 版本之后，可以使的单例装饰器来简化原来的写法。
+在 v3.10 版本之后，可以使用单例装饰器来简化原来的写法。
 
 ```typescript
 import { Singleton } from '@midwayjs/core';
@@ -431,6 +431,45 @@ export class ReportMiddleware implements IMiddleware<Context, NextFunction> {
   }
 }
 ```
+
+
+
+### 获取对象作用域
+
+从 v3.12.0 版本开始，依赖注入容器增加了一个新的获取对象作用域的 API。
+
+```typescript
+import { Controller, Inject, ApplicationContext, Get, IMidwayContainer } from '@midwayjs/core';
+import { UserService} from '../service/user.service';
+
+@Singleton()
+export class UserSerivce {
+  // ...
+}
+
+@Controller('/')
+export class HomeController {
+  @Inject()
+  userService: UserService;
+
+  @ApplicationContext()
+  applicationContext: IMidwayContainer;
+
+  @Get('/')
+  async home(): Promise<string> {
+    console.log(this.applicationContext.getInstanceScope(this));
+    // => Request
+
+    console.log(this.applicationContext.getInstanceScope(this.userService));
+    // => Singleton
+
+    // ...
+  }
+}
+```
+
+`getInstanceScope` 方法的返回值为 `ScopeEnum` 值。
+
 
 
 ## 注入规则

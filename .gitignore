@@ -24,3 +24,5 @@ docs-api
 site/changelog
 .changelog
 **/test/*.txt
+.audit
+packages/**/test/tmp

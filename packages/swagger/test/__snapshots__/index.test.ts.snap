@@ -22,6 +22,7 @@ exports[`/test/index.test.ts should fix issue1976 1`] = `
               "sport",
               "question",
             ],
+            "example": "sport",
             "type": "string",
           },
           "uuid": {
@@ -50,6 +51,7 @@ exports[`/test/index.test.ts should fix issue1976 1`] = `
               "sport",
               "question",
             ],
+            "example": "sport",
             "type": "string",
           },
         },
@@ -77,7 +79,6 @@ exports[`/test/index.test.ts should fix issue1976 1`] = `
               },
             },
           },
-          "description": "",
           "required": true,
         },
         "responses": {
@@ -103,7 +104,6 @@ exports[`/test/index.test.ts should fix issue1976 1`] = `
               },
             },
           },
-          "description": "",
           "required": true,
         },
         "responses": {
@@ -296,6 +296,7 @@ exports[`/test/index.test.ts test swagger should get swagger json 3`] = `
       "items": {
         "$ref": "#/components/schemas/Catd",
       },
+      "required": false,
       "type": "array",
     },
     "namea": {
@@ -319,7 +320,7 @@ exports[`/test/index.test.ts test swagger should get swagger json 4`] = `
     "agedata": {
       "description": "The age of the CatDSate",
       "example": "2022-12-12 11:11:11",
-      "format": "date",
+      "format": "date-time",
       "type": "string",
     },
     "breed": {
@@ -332,7 +333,26 @@ exports[`/test/index.test.ts test swagger should get swagger json 4`] = `
       "items": {
         "$ref": "#/components/schemas/Catd",
       },
+      "required": false,
       "type": "array",
+    },
+    "children": {
+      "items": {
+        "$ref": "#/components/schemas/Cat",
+      },
+      "type": "array",
+    },
+    "childrenWithRef": {
+      "items": {
+        "$ref": "#/components/schemas/Cat",
+      },
+      "type": "array",
+    },
+    "father": {
+      "$ref": "#/components/schemas/Cat",
+    },
+    "mother": {
+      "$ref": "#/components/schemas/Cat",
     },
     "name": {
       "description": "The name of the Cat",
@@ -359,7 +379,7 @@ exports[`/test/index.test.ts test swagger should get swagger json 5`] = `
     "agedata": {
       "description": "The age of the CatDSate",
       "example": "2022-12-12 11:11:11",
-      "format": "date",
+      "format": "date-time",
       "type": "string",
     },
     "breed": {
@@ -418,8 +438,6 @@ exports[`/test/index.test.ts test swagger should get swagger json 6`] = `
         },
       },
       {
-        "allowEmptyValue": false,
-        "explode": true,
         "in": "query",
         "name": "aa",
         "required": true,
@@ -431,11 +449,8 @@ exports[`/test/index.test.ts test swagger should get swagger json 6`] = `
           ],
           "type": "string",
         },
-        "style": "form",
       },
       {
-        "allowEmptyValue": false,
-        "explode": true,
         "in": "query",
         "name": "test",
         "required": true,
@@ -447,19 +462,14 @@ exports[`/test/index.test.ts test swagger should get swagger json 6`] = `
           ],
           "type": "string",
         },
-        "style": "form",
       },
       {
         "description": "hello world id number",
         "example": 12,
-        "explode": false,
         "in": "path",
         "name": "id",
         "required": true,
-        "schema": {
-          "type": "string",
-        },
-        "style": "simple",
+        "schema": {},
       },
     ],
     "responses": {
@@ -510,15 +520,11 @@ exports[`/test/index.test.ts test swagger should get swagger json 6`] = `
       {
         "description": "hello world id number",
         "example": 12,
-        "explode": false,
+        "format": "int32",
         "in": "path",
         "name": "id",
         "required": true,
-        "schema": {
-          "format": "int32",
-          "type": "number",
-        },
-        "style": "simple",
+        "schema": {},
       },
     ],
     "requestBody": {

@@ -7,6 +7,7 @@ import {
   PathItemObject,
   SchemaObject,
   TagObject,
+  PathsObject,
 } from './interfaces';
 
 export class DocumentBuilder {
@@ -73,6 +74,15 @@ export class DocumentBuilder {
     return this;
   }
 
+  public getPaths(): PathsObject {
+    return this.document.paths;
+  }
+
+  public setPaths(paths: Record<string, PathItemObject>) {
+    this.document.paths = paths;
+    return this;
+  }
+
   public addSchema(schema: Record<string, SchemaObject>) {
     if (!this.document.components.schemas) {
       this.document.components.schemas = {};
@@ -93,21 +103,39 @@ export class DocumentBuilder {
     description = '',
     externalDocs?: ExternalDocumentationObject
   ): this {
+    const tags = this.document.tags || [];
     if (Array.isArray(name)) {
       const arr = name as Array<string>;
       for (const s of arr) {
-        this.document.tags.push({
-          name: s,
-          description: '',
-        });
+        if (!tags.find(tag => tag.name === name)) {
+          tags.push({
+            name: s,
+            description: '',
+          });
+        }
       }
       return this;
     }
-    this.document.tags.push({
-      name,
-      description,
-      externalDocs,
-    });
+    if (!tags.find(tag => tag.name === name)) {
+      tags.push({
+        name,
+        description,
+        externalDocs,
+      });
+    } else {
+      // update description and externalDocs
+      tags.forEach(tag => {
+        if (tag.name === name) {
+          if (description) {
+            tag.description = description;
+          }
+          if (externalDocs) {
+            tag.externalDocs = externalDocs;
+          }
+        }
+      });
+    }
+    this.document.tags = tags;
     return this;
   }
 

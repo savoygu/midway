@@ -7,9 +7,15 @@ midway 提供了基于 [koa-static-cache](https://github.com/koajs/static-cache)
 | web 支持情况      |      |
 | ----------------- | ---- |
 | @midwayjs/koa     | ✅    |
-| @midwayjs/faas    | ✅    |
+| @midwayjs/faas    | 💬    |
 | @midwayjs/web     | ✅    |
 | @midwayjs/express | ❌    |
+
+:::caution
+
+💬 部分函数计算平台不支持流式请求响应，请参考对应平台能力。
+
+:::
 
 
 
@@ -200,4 +206,21 @@ export default {
     // ...
   },
 }
+```
+
+
+
+### 3、egg（@midwayjs/web）下不生效的情况
+
+由于 egg  自带了静态托管插件，如果开启了 static 插件，会和此组件冲突。
+
+如需使用本组件，请务必关闭 egg 插件。
+
+```typescript
+// src/config/plugin.ts
+import { EggPlugin } from 'egg';
+export default {
+  // ...
+  static: false,
+} as EggPlugin;
 ```

@@ -25,7 +25,6 @@ Midway 提供了对 [ws](https://www.npmjs.com/package/ws) 模块的支持和封
 在现有项目中安装 WebSocket 的依赖。
 ```bash
 $ npm i @midwayjs/ws@3 --save
-$ npm i @types/ws --save-dev
 ```
 
 或者在 `package.json` 中增加如下依赖后，重新安装。
@@ -36,10 +35,6 @@ $ npm i @types/ws --save-dev
     "@midwayjs/ws": "^3.0.0",
     // ...
   },
-  "devDependencies": {
-    "@types/ws": "^8.2.2",
-    // ...
-  }
 }
 ```
 
@@ -230,6 +225,56 @@ export class HomeController {
 ```
 
 
+
+## 心跳检查
+
+有时服务器和客户端之间的连接可能会中断，服务器和客户端都不知道连接的断开情况。
+
+可以通过启用 `enableServerHeartbeatCheck` 配置心跳检查主动断开请求。
+
+```typescript
+// src/config/config.default
+export default {
+  // ...
+  webSocket: {
+    enableServerHeartbeatCheck: true,
+  },
+}
+```
+
+默认检查时间为 `30*1000` 毫秒，可以通过 `serverHeartbeatInterval` 进行修改，配置单位为毫秒。
+
+```typescript
+// src/config/config.default
+export default {
+  // ...
+  webSocket: {
+    serverHeartbeatInterval: 30000,
+  },
+}
+```
+
+这一配置每隔一段时间会自动发送 `ping` 包，客户端若没有在下一个时间间隔返回消息，则会被自动 `terminate` 。
+
+客户端如果希望知道服务端的状态，可以通过监听 `ping` 消息来实现。
+
+```typescript
+import WebSocket from 'ws';
+
+function heartbeat() {
+  clearTimeout(this.pingTimeout);
+
+  // 每次接收 ping 之后，延迟等待，如果下一次未拿到服务端 ping 消息，则认为出现问题
+  this.pingTimeout = setTimeout(() => {
+    // 重连或者中止
+  }, 30000 + 1000);
+}
+
+const client = new WebSocket('wss://websocket-echo.com/');
+
+// ...
+client.on('ping', heartbeat);
+```
 
 
 

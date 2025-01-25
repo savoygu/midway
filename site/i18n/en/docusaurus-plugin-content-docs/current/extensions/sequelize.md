@@ -84,6 +84,27 @@ npm install mongodb --save
 
 In the following example, `mysql2` is used as an example.
 
+### Directory structure
+
+A basic reference directory structure is as follows.
+
+
+```
+MyProject
+├── src
+│   ├── config
+│   │   └── config.default.ts
+│   ├── entity
+│   │   └── person.entity.ts
+│   ├── configuration.ts
+│   └── service
+├── .gitignore
+├── package.json
+├── README.md
+└── tsconfig.json
+```
+
+
 ## Enable components
 
 Enable components in the `src/configuration.ts` file.
@@ -111,20 +132,20 @@ export class MainConfiguration implements ILifeCycle {
 
 We associate with the database through the model. The model in the application is the database table. In the Sequelize, the model is bound to the entity. Each Entity file is a Model and an Entity.
 
-In the example, you need an entity. Let's take `person` as an example. Create an entity directory and add the entity file `person.ts` to the entity directory. A simple entity is as follows.
+In the example, you need an entity. Let's take `person` as an example. Create an entity directory and add the entity file `person.entity.ts` to the entity directory. A simple entity is as follows.
 
 ```typescript
-// src/entity/person.ts
+// src/entity/person.entity.ts
 import { Table, Model, Column, HasMany } from 'sequelize-typescript';
 
 @Table
-class Hobby extends Model {
+export class Hobby extends Model {
   @Column
   name: string;
 }
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @Column
   name: string;
 
@@ -145,10 +166,10 @@ The `@Table` decorator can be used without passing any parameters. For more info
   timestamps: true
   ...
 })
-class Person extends Model {}
+export class Person extends Model {}
 ```
 
-These entity columns can also be generated using [sequelize_generator](/docs/tool/sequelize_generator) tools.
+
 
 ### 2. Primary key
 
@@ -162,7 +183,7 @@ For example:
 import { Table, Model, PrimaryKey } from 'sequelize-typescript';
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @PrimaryKey
   name: string;
 }
@@ -178,7 +199,7 @@ for example:
 import { Table, Model, CreatedAt, UpdatedAt, DeletedAt } from 'sequelize-typescript';
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @CreatedAt
   creationDate: Date;
 
@@ -204,7 +225,7 @@ The @Column decorator is used to label normal columns and can be used without pa
 import { Table, Model, Column } from 'sequelize-typescript';
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @Column
   name: string;
 }
@@ -216,7 +237,7 @@ Or specify the column type.
 import { Table, Column, DataType } from 'sequelize-typescript';
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @Column(DataType.TEXT)
   name: string;
 }
@@ -230,7 +251,7 @@ For example:
 import { Table, Model, Column, DataType } from 'sequelize-typescript'
 
 @Table
-class Person extends Model {
+export class Person extends Model {
   @Column({
     type: DataType.FLOAT
     comment: 'Some value',
@@ -253,7 +274,7 @@ In the new version, we have enabled the [data source mechanism](../data_source) 
 ```typescript
 // src/config/config.default.ts
 
-import { Person } from '../entity/person';
+import { Person } from '../entity/person.entity';
 
 export default {
    // ...
@@ -270,9 +291,17 @@ export default {
          dialect: 'mysql',
          define: { charset: 'utf8' },
          timezone: '+08:00',
-         entities: [Person],
          // Locally, you can createTable directly through sync: true
          sync: false,
+
+         // Object format
+         entities: [Person],
+
+         // The following scanning form is supported. For compatibility, we can match both .js and .ts files at the same time
+         entities: [
+           'entity',                        // Specify the directory
+           '**/entity/*.entity.{j,t}s',     // Wildcard with suffix matching
+         ],
        },
 
        // second data source
@@ -284,7 +313,6 @@ export default {
 };
 ```
 
-For more information, see [Data source management](../data_source).
 
 ## Model association
 
@@ -377,7 +405,7 @@ For example:
 
 ```typescript
 import { Table, Column, Model, BelongsTo, ForeignKey } from 'sequelize-typescript';
-import { User } from './User';
+import { User } from './user.entity';
 
 @Table
 export class Photo extends Model {
@@ -403,6 +431,36 @@ export class User extends Model {
 }
 ```
 
+
+
+### Model Cyclic Dependency
+
+If you use the `@BelongsTo` decorator, it is easy to trigger a model circular dependency error, such as:
+
+```
+ReferenceError: Cannot access 'Photo' before initialization
+```
+
+You can wrap types with `ReturnType`.
+
+```typescript
+import { Table, Column, Model, BelongsTo, ForeignKey } from 'sequelize-typescript';
+import { User } from './user.entity';
+
+@Table
+export class Photo extends Model {
+  // ...
+  @BelongsTo(() => User)
+  user: ReturnType<() => User>;
+}
+```
+
+
+
+
+
+
+
 ## Static operation method
 
 If it is a single data source, you can use the following static method.
@@ -413,7 +471,7 @@ Where it needs to be called, use the entity model to operate.
 
 ```typescript
 import { Provide } from '@midwayjs/core';
-import { Person } from '../entity/person';
+import { Person } from '../entity/person.entity';
 
 @Provide()
 export class PersonService {
@@ -428,7 +486,7 @@ export class PersonService {
 
 ```typescript
 import { Provide } from '@midwayjs/core';
-import { Person } from '../entity/person';
+import { Person } from '../entity/person.entity';
 
 @Provide()
 export class PersonService {
@@ -461,7 +519,7 @@ Same as data source configuration, except that there is one more attribute.
 ```typescript
 // src/config/config.default.ts
 
-import { Person } from '../entity/person';
+import { Person } from '../entity/person.entity';
 
 export default {
   // ...
@@ -491,8 +549,8 @@ The basic API is the same as the static operation. Midway has made some simple p
 ```typescript
 import { Controller, Get } from '@midwayjs/core';
 import { InjectRepository } from '@midwayjs/sequelize';
-import { Photo } from '../entity/photo';
-import { User } from '../entity/user';
+import { Photo } from '../entity/photo.entity';
+import { User } from '../entity/user.entity';
 import { Op } from 'sequelize';
 import { Repository } from 'sequelize-typescript';
 
@@ -547,8 +605,8 @@ In Repository mode, we can specify a specific data source in the `InjectReposito
 ```typescript
 import { Controller } from '@midwayjs/core';
 import { InjectRepository } from '@midwayjs/sequelize';
-import { Photo } from '../entity/photo';
-import { User } from '../entity/user';
+import { Photo } from '../entity/photo.entity';
+import { User } from '../entity/user.entity';
 import { Repository } from 'sequelize-typescript';
 
 @Controller('/')
@@ -662,9 +720,52 @@ export class MainConfiguration {
 
 ## Common problem
 
+
+
 ### 1. Dialect needs to be explicitly supplied as of v4.0.0
 
 The reason is that the data source in the configuration does not specify the `dialect` field, which confirms the structure, format of the data source and the result of the configuration merging.
+
+
+
+### 2. Generate entity columns
+
+Please refer to the modules provided by the community, such as [sequelize-typescript-generator](https://github.com/spinlud/sequelize-typescript-generator)
+
+
+
+### 3. Raw Query
+
+If you encounter something more complex, you can use the [raw query method](https://sequelize.org/v5/manual/raw-queries.html)
+
+
+
+### 4. TS2612 error
+
+If your model reports a TS2612 error, such as:
+
+```
+src/entity/AesTenantConfigInfo.ts:29:6 - error TS2612: Property 'id' will overwrite the base property in 'Model<AesTenantConfigInfoAttributes, AesTenantConfigInfoAttributes>'. If this is intentional, add an initializer. Otherwise, add a 'declare' modifier or remove the redundant declaration.
+
+29 id?: number;
+         ~~
+```
+
+It can be assigned a null value.
+
+```typescript
+import { Table, Column } from 'sequelize-typescript';
+
+@Table
+export class User extends Model {
+   @Column({
+     primaryKey: true,
+     autoIncrement: true,
+     type: DataType.BIGINT,
+   })
+   id?: number = undefined;
+}
+```
 
 
 
@@ -672,4 +773,3 @@ The reason is that the data source in the configuration does not specify the `di
 
 - The above document is translated from sequelize-typescript. For more API, please refer to the [English document](<(https://github.com/sequelize/sequelize-typescrip)>).
 - Some [cases](https://github.com/ddzyan/midway-practice)
-- If you encounter complex problems, you can use the [raw query method](https://sequelize.org/v5/manual/raw-queries.html).

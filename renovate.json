@@ -22,16 +22,23 @@
       "matchUpdateTypes": ["minor", "patch"],
       "schedule": ["at any time"],
       "prConcurrentLimit": 2,
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
+      "platformAutomerge": true,
+      "requiredStatusChecks": [
+        "Node.js CI",
+        "Pre Check"
+      ]
+    },
+    {
+      "matchPackageNames": ["cache-manager"],
+      "matchFileNames": ["!packages-legacy/cache/package.json"]
     },
     {
       "groupName": "mongoose monorepo",
       "matchPackageNames": [
         "mongoose",
         "@typegoose/typegoose"
-      ]
+      ],
+      "automerge": false
     },
     {
       "groupName": "bull monorepo",
@@ -39,7 +46,8 @@
         "bull",
         "@bull-board/api",
         "@bull-board/ui"
-      ]
+      ],
+      "automerge": false
     },
     {
       "groupName": "otel",
@@ -47,7 +55,8 @@
         "@opentelemetry/api",
         "@opentelemetry/sdk-trace-base",
         "@opentelemetry/sdk-trace-node"
-      ]
+      ],
+      "automerge": false
     }
   ]
 }

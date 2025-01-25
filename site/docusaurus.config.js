@@ -111,7 +111,7 @@ const config = {
         lastVersion: 'current',
       },
     ],
-    './lib/plugin.js'
+    './src/plugins/aem/index.js',
   ],
   presets: [
     [
@@ -178,10 +178,6 @@ const config = {
             position: 'right',
             items: [
               {
-                label: '开源送礼',
-                href: 'https://survey.taobao.com/apps/zhiliao/pJ3zng9Iv',
-              },
-              {
                 label: '线下沙龙',
                 href: 'https://subway.midwayjs.org/',
               },
@@ -197,7 +193,7 @@ const config = {
       },
       algolia: {
         appId: 'DHOMYJQQ2W',
-        apiKey: '75f3dce231a9777ae8fa6fba6b82085b',
+        apiKey: 'd449ee339aeb289a3f1ace98ca66094c',
         indexName: 'midway',
         contextualSearch: true,
       },

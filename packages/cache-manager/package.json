@@ -1,0 +1,41 @@
+{
+  "name": "@midwayjs/cache-manager",
+  "version": "3.20.0",
+  "description": "midway cache manager",
+  "main": "dist/index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --require=ts-node/register ../../node_modules/.bin/jest --runInBand",
+    "cov": "node --require=ts-node/register ../../node_modules/.bin/jest --runInBand --coverage --forceExit"
+  },
+  "author": "",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "index.d.ts"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:midwayjs/midway.git"
+  },
+  "keywords": [
+    "midway",
+    "cache"
+  ],
+  "engines": {
+    "node": ">=12"
+  },
+  "devDependencies": {
+    "@midwayjs/core": "^3.20.0",
+    "@midwayjs/mock": "^3.20.0",
+    "@midwayjs/redis": "^3.20.0",
+    "cache-manager": "6.0.0",
+    "cache-manager-ioredis-yet": "2.1.2"
+  },
+  "dependencies": {
+    "lodash.clonedeep": "4.5.0",
+    "lru-cache": "7.18.3"
+  }
+}

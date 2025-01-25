@@ -1,0 +1,37 @@
+{
+  "name": "@midwayjs/bullmq",
+  "version": "3.20.0",
+  "description": "midway component for BullMQ",
+  "main": "dist/index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --require=ts-node/register ../../node_modules/.bin/jest --runInBand",
+    "cov": "node --require=ts-node/register ../../node_modules/.bin/jest --runInBand --coverage --forceExit"
+  },
+  "keywords": [
+    "midway",
+    "IoC",
+    "task",
+    "BullMQ",
+    "plugin"
+  ],
+  "author": "guo qicong",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "index.d.ts"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@midwayjs/core": "^3.20.0",
+    "@midwayjs/mock": "^3.20.0"
+  },
+  "dependencies": {
+    "bullmq": "5.37.0"
+  },
+  "engines": {
+    "node": ">=12"
+  },
+  "repository": "https://github.com/midwayjs/midway.git"
+}

@@ -7,11 +7,15 @@ Related information:
 | Web support |      |
 | ----------------- | ---- |
 | @midwayjs/koa | ✅ |
-| @midwayjs/faas | ✅ |
+| @midwayjs/faas | 💬 |
 | @midwayjs/web | ✅ |
 | @midwayjs/express | ❌ |
 
+:::caution
 
+💬 Some function computing platforms do not support streaming request responses. Please refer to the corresponding platform capabilities.
+
+:::
 
 ## Installation dependency
 
@@ -201,3 +205,20 @@ export default {
    },
 }
 ````
+
+
+
+### 3. When egg (@midwayjs/web) does not take effect
+
+Since egg comes with a static hosting plug-in, if the static plug-in is enabled, it will conflict with this component.
+
+If you want to use this component, be sure to close the egg plug-in.
+
+```typescript
+// src/config/plugin.ts
+import { EggPlugin } from 'egg';
+export default {
+   // ...
+   static: false,
+} as EggPlugin;
+```

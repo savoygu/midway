@@ -18,6 +18,7 @@ export { MidwayLifeCycleService } from './service/lifeCycleService';
 export { MidwayMiddlewareService } from './service/middlewareService';
 export { MidwayDecoratorService } from './service/decoratorService';
 export { MidwayMockService } from './service/mockService';
+export { MidwayHealthService } from './service/healthService';
 export {
   RouterInfo,
   DynamicRouterInfo,
@@ -30,6 +31,10 @@ export {
   WebRouterCollector,
 } from './service/slsFunctionService';
 export { DataSourceManager } from './common/dataSourceManager';
+export {
+  DEFAULT_PRIORITY,
+  MidwayPriorityManager,
+} from './common/priorityManager';
 export * from './service/pipelineService';
 
 export * from './common/loggerFactory';
@@ -68,6 +73,8 @@ export {
   wrapMiddleware,
   wrapAsync,
   isTypeScriptEnvironment,
+  sleep,
+  Utils,
 } from './util/';
 export { extend } from './util/extend';
 export * from './util/webRouterParam';
@@ -75,10 +82,10 @@ export * from './util/contextUtil';
 export * from './util/pathToRegexp';
 export * from './util/httpclient';
 export { retryWithAsync, retryWith } from './util/retry';
-export { sleep, Utils } from './util/index';
 export { Types } from './util/types';
 export { PathFileUtil } from './util/pathFileUtil';
 export { FileUtils } from './util/fs';
 export { FORMAT } from './util/format';
-
-export type { ILogger, IMidwayLogger } from '@midwayjs/logger';
+export { ServerResponse, HttpServerResponse } from './response/index';
+export { TypedResourceManager } from './common/typedResourceManager';
+export { MidwayPerformanceManager } from './common/performanceManager';

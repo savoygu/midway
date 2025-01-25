@@ -1,4 +1,3 @@
-import type { LoggerOptions, LoggerContextFormat } from '@midwayjs/logger';
 import * as EventEmitter from 'events';
 import type { AsyncContextManager } from './common/asyncContextManager';
 import type { LoggerFactory } from './common/loggerFactory';
@@ -399,6 +398,20 @@ export interface ParamDecoratorOptions {
   pipes?: PipeUnionTransform<any, any>[];
 }
 
+/**
+ * Logger Options for midway, you can merge this interface in package
+ * @example
+ * ```typescript
+ *
+ * import { IMidwayLogger } from '@midwayjs/logger';
+ *
+ * declare module '@midwayjs/core/dist/interface' {
+ *   interface ILogger extends IMidwayLogger {
+ *   }
+ * }
+ *
+ * ```
+ */
 export interface ILogger {
   info(msg: any, ...args: any[]): void;
   debug(msg: any, ...args: any[]): void;
@@ -406,16 +419,44 @@ export interface ILogger {
   warn(msg: any, ...args: any[]): void;
 }
 
+/**
+ * @deprecated
+ */
+export type IMidwayLogger = ILogger;
+
+/**
+ * Logger Options for midway, you can merge this interface in package
+ * @example
+ * ```typescript
+ *
+ * import { LoggerOptions } from '@midwayjs/logger';
+ *
+ * declare module '@midwayjs/core/dist/interface' {
+ *   interface MidwayLoggerOptions extends LoggerOptions {
+ *     logDir?: string;
+ *     level?: string;
+ *   }
+ * }
+ *
+ * ```
+ */
+export interface MidwayLoggerOptions {
+  lazyLoad?: boolean;
+  aliasName?: string;
+  [key: string]: any;
+}
+
 export interface MidwayCoreDefaultConfig {
-  midwayLogger?: ServiceFactoryConfigOption<LoggerOptions & {
-    lazyLoad?: boolean;
-  }>;
+  midwayLogger?: ServiceFactoryConfigOption<MidwayLoggerOptions>;
   debug?: {
     recordConfigMergeOrder?: boolean;
   };
-  asyncContextManager: {
-    enable: boolean;
+  asyncContextManager?: {
+    enable?: boolean;
   };
+  core?: {
+    healthCheckTimeout?: number;
+  }
 }
 
 export type ServiceFactoryConfigOption<OPTIONS> = {
@@ -425,6 +466,9 @@ export type ServiceFactoryConfigOption<OPTIONS> = {
     [key: string]: PowerPartial<OPTIONS>;
   };
   defaultClientName?: string;
+  clientPriority?: {
+    [key: string]: number;
+  }
 };
 
 export type CreateDataSourceInstanceOptions = {
@@ -439,12 +483,14 @@ export type CreateDataSourceInstanceOptions = {
 }
 
 export type DataSourceManagerConfigOption<OPTIONS, ENTITY_CONFIG_KEY extends string = 'entities'> = {
-  default?: PowerPartial<OPTIONS>;
+  default?: OPTIONS;
   defaultDataSourceName?: string;
   dataSource?: {
     [key: string]: PowerPartial<{
       [keyName in ENTITY_CONFIG_KEY]: any[];
-    } & OPTIONS>;
+    }> & OPTIONS & {
+      customDataSourceClass?: any;
+    };
   };
 } & CreateDataSourceInstanceOptions;
 
@@ -477,6 +523,9 @@ export interface ILifeCycle extends Partial<IObjectLifeCycle> {
     container: IMidwayContainer,
     mainApp?: IMidwayApplication
   ): Promise<void>;
+  onHealthCheck?(
+    container: IMidwayContainer
+  ): Promise<HealthResult>;
   onStop?(
     container: IMidwayContainer,
     mainApp?: IMidwayApplication
@@ -810,8 +859,14 @@ export type IgnoreMatcher<CTX> = string | RegExp | ((ctx: CTX) => boolean);
  * Common middleware definition
  */
 export interface IMiddleware<CTX, R, N = unknown> {
-  resolve: (app: IMidwayApplication) => FunctionMiddleware<CTX, R, N> | Promise<FunctionMiddleware<CTX, R, N>>;
+  resolve: (app: IMidwayApplication, options?: any) => FunctionMiddleware<CTX, R, N> | Promise<FunctionMiddleware<CTX, R, N>>;
+  /**
+   * Which paths to ignore
+   */
   match?: IgnoreMatcher<CTX> | IgnoreMatcher<CTX> [];
+  /**
+   * Match those paths with higher priority than ignore
+   */
   ignore?: IgnoreMatcher<CTX> | IgnoreMatcher<CTX> [];
 }
 export type FunctionMiddleware<CTX, R, N = unknown> = N extends true
@@ -822,9 +877,16 @@ export type ClassMiddleware<CTX, R, N> = new (...args) => IMiddleware<
   R,
   N
 >;
+
+export type CompositionMiddleware<CTX, R, N> = {
+  middleware: ClassMiddleware<CTX, R, N>;
+  options: any;
+  name?: string;
+};
 export type CommonMiddleware<CTX, R, N> =
   | ClassMiddleware<CTX, R, N>
-  | FunctionMiddleware<CTX, R, N>;
+  | FunctionMiddleware<CTX, R, N>
+  | CompositionMiddleware<CTX, R, N>;
 export type CommonMiddlewareUnion<CTX, R, N> =
   | CommonMiddleware<CTX, R, N>
   | Array<CommonMiddleware<CTX, R, N>>;
@@ -955,7 +1017,7 @@ export interface IMidwayBaseApplication<CTX extends IMidwayContext> {
    * @param name
    * @param options
    */
-  createLogger(name: string, options: LoggerOptions): ILogger;
+  createLogger(name: string, options: MidwayLoggerOptions): ILogger;
 
   /**
    * Get project name, just package.json name
@@ -1058,7 +1120,7 @@ export interface IConfigurationOptions {
   logger?: ILogger;
   appLogger?: ILogger;
   contextLoggerApplyLogger?: string;
-  contextLoggerFormat?: LoggerContextFormat;
+  contextLoggerFormat?: any;
 }
 
 export interface IMidwayFramework<
@@ -1084,7 +1146,7 @@ export interface IMidwayFramework<
   getBaseDir(): string;
   getLogger(name?: string): ILogger;
   getCoreLogger(): ILogger;
-  createLogger(name: string, options: LoggerOptions): ILogger;
+  createLogger(name: string, options: MidwayLoggerOptions): ILogger;
   getProjectName(): string;
   useMiddleware(Middleware: CommonMiddlewareUnion<CTX, ResOrNext, Next>): void;
   getMiddleware(): IMiddlewareManager<CTX, ResOrNext, Next>;
@@ -1122,6 +1184,12 @@ export interface IServiceFactory<Client> {
   getName(): string;
   stop(): Promise<void>;
   getDefaultClientName(): string;
+  getClients(): Map<string, Client>;
+  getClientKeys(): string[];
+  getClientPriority(clientName: string): string;
+  isHighPriority(clientName: string): boolean;
+  isMediumPriority(clientName: string): boolean;
+  isLowPriority(clientName: string) : boolean;
 }
 
 export interface ISimulation {
@@ -1133,3 +1201,52 @@ export interface ISimulation {
   appTearDown?(app: IMidwayApplication): Promise<void>;
   enableCondition(): boolean | Promise<boolean>;
 }
+
+export interface HealthResult {
+  /**
+   * health status
+   */
+  status: boolean;
+  /**
+   * failed reason
+   */
+  reason?: string;
+}
+
+export interface HealthResults {
+  /**
+   * health status
+   */
+  status: boolean;
+  /**
+   * first failed namespace
+   */
+  namespace: string;
+  /**
+   * first failed reason
+   */
+  reason?: string;
+  results?: Array<{
+    namespace: string;
+    status: boolean;
+    reason?: string;
+  }>;
+}
+
+export interface ServerSendEventMessage {
+  data?: string | object;
+  event?: string;
+  id?: string;
+  retry?: number;
+}
+
+export interface ServerStreamOptions<CTX extends IMidwayContext> {
+  tpl?: (data: unknown, ctx: CTX) => unknown;
+}
+
+export interface ServerSendEventStreamOptions<CTX extends IMidwayContext> {
+  closeEvent?: string;
+  tpl?: (data: ServerSendEventMessage, ctx: CTX) => ServerSendEventMessage;
+}
+
+export type ClassType<T = any> = new (...args: any[]) => T;

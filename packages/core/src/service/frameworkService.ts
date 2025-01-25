@@ -31,6 +31,7 @@ import { MidwayApplicationManager } from '../common/applicationManager';
 import * as util from 'util';
 import { MidwayCommonError, MidwayParameterError } from '../error';
 import { REQUEST_OBJ_CTX_KEY } from '../constants';
+import { MidwayInitializerPerformanceManager } from '../common/performanceManager';
 
 const debug = util.debuglog('midway:debug');
 
@@ -168,12 +169,19 @@ export class MidwayFrameworkService {
         >(frameworkClz, [this.applicationContext]);
         // if enable, just init framework
         if (frameworkInstance.isEnable()) {
+          MidwayInitializerPerformanceManager.frameworkInitializeStart(
+            frameworkInstance.getFrameworkName()
+          );
           // app init
           await frameworkInstance.initialize({
             applicationContext: this.applicationContext,
             namespace: frameworkInstance.getNamespace(),
             ...this.globalOptions,
           });
+
+          MidwayInitializerPerformanceManager.frameworkInitializeEnd(
+            frameworkInstance.getFrameworkName()
+          );
 
           debug(
             `[core]: Found Framework "${frameworkInstance.getFrameworkName()}" and initialize.`
@@ -217,6 +225,8 @@ export class MidwayFrameworkService {
       global['MIDWAY_MAIN_FRAMEWORK'] = this.mainFramework =
         this.applicationManager.getFramework(mainNs) ??
         this.globalFrameworkList[0];
+
+      debug(`[core]: Current main Framework is "${mainNs}".`);
     }
 
     // init aspect module
@@ -236,13 +246,28 @@ export class MidwayFrameworkService {
   }
 
   public async runFramework() {
+    const namespaceList = this.applicationContext.getNamespaceList();
+    // globalFrameworkList 需要基于 namespaceList 进行排序，不然会出现顺序问题
+    this.globalFrameworkList = this.globalFrameworkList.sort((a, b) => {
+      return (
+        namespaceList.indexOf(a.getNamespace()) -
+        namespaceList.indexOf(b.getNamespace())
+      );
+    });
+
     for (const frameworkInstance of this.globalFrameworkList) {
       // if enable, just init framework
       if (frameworkInstance.isEnable()) {
+        MidwayInitializerPerformanceManager.frameworkRunStart(
+          frameworkInstance.getFrameworkName()
+        );
         // app init
         await frameworkInstance.run();
         debug(
           `[core]: Found Framework "${frameworkInstance.getFrameworkName()}" and run.`
+        );
+        MidwayInitializerPerformanceManager.frameworkRunEnd(
+          frameworkInstance.getFrameworkName()
         );
       }
     }

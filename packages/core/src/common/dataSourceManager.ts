@@ -10,6 +10,10 @@ import { DEFAULT_PATTERN, IGNORE_PATTERN } from '../constants';
 import { debuglog } from 'util';
 import { loadModule } from '../util';
 import { ModuleLoadType, DataSourceManagerConfigOption } from '../interface';
+import { Inject } from '../decorator';
+import { MidwayEnvironmentService } from '../service/environmentService';
+import { MidwayPriorityManager } from './priorityManager';
+
 const debug = debuglog('midway:debug');
 
 export abstract class DataSourceManager<
@@ -20,6 +24,16 @@ export abstract class DataSourceManager<
   protected options: DataSourceManagerConfigOption<ConnectionOpts> = {};
   protected modelMapping = new WeakMap();
   private innerDefaultDataSourceName: string;
+  protected dataSourcePriority: Record<string, string> = {};
+
+  @Inject()
+  protected appDir: string;
+
+  @Inject()
+  protected environmentService: MidwayEnvironmentService;
+
+  @Inject()
+  protected priorityManager: MidwayPriorityManager;
 
   protected async initDataSource(
     dataSourceConfig: DataSourceManagerConfigOption<ConnectionOpts>,
@@ -55,7 +69,11 @@ export abstract class DataSourceManager<
         for (const entity of userEntities) {
           if (typeof entity === 'string') {
             // string will be glob file
-            const models = await globModels(entity, baseDirOrOptions.baseDir);
+            const models = await globModels(
+              entity,
+              baseDirOrOptions.baseDir,
+              this.environmentService?.getModuleLoadType()
+            );
             for (const model of models) {
               entities.add(model);
               this.modelMapping.set(model, dataSourceName);
@@ -101,6 +119,10 @@ export abstract class DataSourceManager<
 
   public getDataSourceNames() {
     return Array.from(this.dataSource.keys());
+  }
+
+  public getAllDataSources() {
+    return this.dataSource;
   }
 
   /**
@@ -167,6 +189,9 @@ export abstract class DataSourceManager<
   protected abstract checkConnected(dataSource: T): Promise<boolean>;
   protected abstract destroyDataSource(dataSource: T): Promise<void>;
 
+  /**
+   * Call destroyDataSource() on all data sources
+   */
   public async stop(): Promise<void> {
     const arr = Array.from(this.dataSource.values());
     await Promise.all(
@@ -190,6 +215,22 @@ export abstract class DataSourceManager<
       }
     }
     return this.innerDefaultDataSourceName;
+  }
+
+  public getDataSourcePriority(name: string) {
+    return this.priorityManager.getPriority(this.dataSourcePriority[name]);
+  }
+
+  public isHighPriority(name: string) {
+    return this.priorityManager.isHighPriority(this.dataSourcePriority[name]);
+  }
+
+  public isMediumPriority(name: string) {
+    return this.priorityManager.isMediumPriority(this.dataSourcePriority[name]);
+  }
+
+  public isLowPriority(name: string) {
+    return this.priorityManager.isLowPriority(this.dataSourcePriority[name]);
   }
 }
 
