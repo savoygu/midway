@@ -1,4 +1,19 @@
-# midwayjs/cli
+# Midway CLI
+
+:::tip
+
+Since the underlying capabilities of the CLI are derived from the existing module functions of the community, in order to reduce the maintenance costs and understanding costs caused by transitional packaging, each function in the CLI will gradually become the existing modules of the community, and the CLI library will cease to exist. Iterate.
+
+The subsequent changes for this purpose are
+
+* Development will change from `midway-bin dev` to `mwtsc`
+* Compilation will change from `midway-bin build` to `tsc`
+* Test will change from `midway-bin test` to `mocha` or `jest`
+* Coverage will change from `midway-bin cov` to `jest --coverage` or other similar directives
+
+:::
+
+
 
 `@midwayjs/cli` is a new version of Midway system tool chain, which is integrated with Serverless and the original application tool chain.
 
@@ -138,6 +153,45 @@ When you use mocha for a single test, you must manually install the `mocha` and 
 If the TypeScript path alias is used in the project, please refer to: [Test](../testing# Configuration-alias-paths)
 :::
 
+### Use mocha instead of jest
+
+
+Some students have a special liking for mocha and hope to use mocha as a testing tool.
+
+
+You can use mocha mode for testing.
+
+```bash
+$ midway-bin test --ts --mocha
+```
+
+
+When using mocha for unit testing, you need to manually install the two dependencies `mocha` and `@types/mocha` into `devDependencies`: `npm i mocha @types/mocha -D`.
+
+### Configure alias paths
+
+When you configure paths in `tsconfig.json`, and the module package import uses paths, there will be mocha for unit testing, which will cause the path to not be parsed, which cannot be solved by importing `tsconfig-paths/register`
+
+```typescript
+// src/configuration.ts
+
+import 'tsconfig-paths/register';
+// ...
+```
+
+Need to add `tsconfig-paths` and reference it for processing during testing
+
+```bash
+$ npm install --save-dev tsconfig-paths
+```
+
+```bash
+$ midway-bin test --ts --mocha -r tsconfig-paths/register
+```
+
+:::info
+Note that since mocha does not come with an assertion tool, you need to use other tools such as assert and chai to make assertions.
+:::
 
 
 

@@ -7,11 +7,15 @@ Related Information:
 | web support       |      |
 | ----------------- | ---- |
 | @midwayjs/koa     | ✅    |
-| @midwayjs/faas    | ✅    |
+| @midwayjs/faas    | 💬    |
 | @midwayjs/web     | ✅    |
 | @midwayjs/express | ✅    |
 
+:::caution
 
+💬 Some function computing platforms do not support streaming request responses. Please refer to the corresponding platform capabilities.
+
+:::
 
 ## Install dependencies
 
@@ -220,6 +224,34 @@ The default suffix whitelist can be obtained through the `uploadWhiteList` expor
 
 In addition, midway upload component, in order to avoid some `malicious users`, uses some technical means to `forge` some extensions that can be truncated, so it will filter the binary data of the obtained extensions, and only support `0x2e` (that is, the English dot `.`), `0x30-0x39` (that is, the number `0-9`), `0x61-0x7a` (that is, the lowercase letters `a-z`) are used as extensions, and other characters will be Automatically ignored.
 
+Starting with v3.14.0, you can pass a function that can dynamically return a whitelist based on different conditions.
+
+```typescript
+// src/config/config.default.ts
+import { uploadWhiteList } from '@midwayjs/upload';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+export default {
+   // ...
+   upload: {
+     whitelist: (ctx) => {
+       if (ctx.path === '/') {
+         return [
+           '.jpg',
+           '.jpeg',
+         ];
+       } else {
+         return [
+           '.jpg',
+         ]
+       };
+     },
+     // ...
+   },
+}
+```
+
 
 
 ### MIME type checking
@@ -280,6 +312,31 @@ However, we still recommend that you set the `mimeTypeWhiteList` parameter if po
 
 :::
 
+Starting with v3.14.0, you can pass a function that dynamically returns MIME rules based on different conditions.
+
+```typescript
+// src/config/config.default.ts
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+export default {
+   // ...
+   upload: {
+     mimeTypeWhiteList: (ctx) => {
+       if (ctx.path === '/') {
+         return {
+           '.jpg': 'image/jpeg',
+         };
+       } else {
+         return {
+           '.jpeg': ['image/jpeg', 'image/png'],
+         }
+       };
+     }
+   },
+}
+```
+
 
 
 ### Configure match or ignore
@@ -289,6 +346,47 @@ When the upload component is enabled, when the `method` of the request is one of
 This will cause: If the user may manually analyze the request information of the website, manually call any interface such as `post`, and upload a file, it will trigger the parsing logic of the `upload` component, and create a file in the temporary directory The temporary cache of uploaded files will generate unnecessary `load` on the website server, and may `affect` the normal business logic processing of the server in severe cases.
 
 Therefore, you can add `match` or `ignore` configuration to the configuration to set which api paths are allowed to upload.
+
+
+
+### Same name Field
+
+The componennt support Field with the same name since v3.16.6.
+
+```typescript
+// src/config/config.default.ts
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+export default {
+  // ...
+  upload: {
+    allowFieldsDuplication: true
+  },
+}
+
+```
+
+After `allowFieldsDuplication` is enabled, Fields with the same name will be merged into an array.
+
+```typescript
+import { Controller, Inject, Post, Files, Fields } from '@midwayjs/core';
+
+@Controller('/')
+export class HomeController {
+  @Post('/upload')
+  async upload(@Files() files, @Fields() fields) {
+    /*
+    fields = {
+    	name: ['name1', 'name2'],
+    	otherName: 'nameOther'
+    	// ...
+    }
+
+    */
+  }
+}
+```
 
 
 

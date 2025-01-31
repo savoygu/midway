@@ -25,7 +25,6 @@ Related information:
 Install WebSocket dependencies in existing projects.
 ```bash
 $ npm i @midwayjs/ws@3 --save
-$ npm i @types/ws --save-dev
 ```
 
 Or reinstall the following dependencies in `package.json`.
@@ -34,10 +33,6 @@ Or reinstall the following dependencies in `package.json`.
 {
   "dependencies": {
     "@midwayjs/ws": "^3.0.0",
-    // ...
-  },
-  "devDependencies": {
-    "@types/ws": "^8.2.2",
     // ...
   }
 }
@@ -230,6 +225,56 @@ export class HomeController {
 ```
 
 
+
+## Heartbeat check
+
+Sometimes the connection between the server and the client may be interrupted, and neither the server nor the client is aware of the disconnection.
+
+Heartbeat check proactive disconnect requests can be configured by enabling `enableServerHeartbeatCheck`.
+
+```typescript
+// src/config/config.default
+export default {
+   // ...
+   webSocket: {
+     enableServerHeartbeatCheck: true,
+   },
+}
+```
+
+The default check time is `30*1000` milliseconds, which can be modified through `serverHeartbeatInterval`, and the configuration unit is milliseconds.
+
+```typescript
+// src/config/config.default
+export default {
+   // ...
+   webSocket: {
+     serverHeartbeatInterval: 30000,
+   },
+}
+```
+
+This configuration will automatically send `ping` packets at regular intervals. If the client does not return a message in the next time interval, it will be automatically `terminate`.
+
+If the client wants to know the status of the server, it can do so by listening to the `ping` message.
+
+```typescript
+import WebSocket from 'ws';
+
+function heartbeat() {
+   clearTimeout(this.pingTimeout);
+
+   // After each ping is received, delay and wait. If the server ping message is not received next time, it is considered that there is a problem.
+   this.pingTimeout = setTimeout(() => {
+     //Reconnect or abort
+   }, 30000 + 1000);
+}
+
+const client = new WebSocket('wss://websocket-echo.com/');
+
+// ...
+client.on('ping', heartbeat);
+```
 
 
 

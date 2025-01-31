@@ -50,7 +50,9 @@ export class MainConfiguration {}
 ## 调用服务
 
 ```typescript
+import { Controller, Inject } from '@midwayjs/core';
 import { CaptchaService } from '@midwayjs/captcha';
+
 @Controller('/')
 export class HomeController {
 
@@ -194,6 +196,9 @@ export const captcha: CaptchaOptions = {
   idPrefix: 'midway:vc',
 }
 ```
+
+更多配置请参考 [svg-captcha](https://github.com/produck/svg-captcha)。
+
 ### 配置示例一
 
 获取一个 包含 `5个纯英文字母` 的图像验证码，图像宽度 `200` 像素，高度 `50` 像素，并且包含 `3` 条干扰线。
@@ -255,9 +260,23 @@ export const captcha: CaptchaOptions = {
 
 ## 组件依赖
 
-验证码的内容存储基于 `@midwayjs/cache` 组件，默认是在 `memory` 中存储，如果要替换为 `redis` 或其他服务，请参照 `@midwayjs/cache` 的[文档](/docs/extensions/cache），对 cache 进行配置。
+验证码的内容存储基于 `@midwayjs/cache-manager` 组件，默认创建了一个名为 `captcha` 的缓存实例，将数据存储在 `memory` 中。
 
-`@midwayjs/cache` 组件已在 `@midwayjs/captcha` 组件 `package.json` 的 `dependencies` 中，无需额外再次安装。
+```typescript
+export default {
+  cacheManager: {
+    clients: {
+      captcha: {
+        store: 'memory',
+      },
+    },
+  },
+};
+```
+
+如果要替换为 `redis` 或其他服务，请参照 `@midwayjs/cache-manager` 的 [文档](/docs/extensions/caching)，对 cache 进行配置。
+
+
 
 
 ## 效果
@@ -269,3 +288,8 @@ export const captcha: CaptchaOptions = {
 **计算表达式**
 
  ![计算表达式](https://gw.alicdn.com/imgextra/i4/O1CN01u3Mj0q24lRx1md9pX_!!6000000007431-2-tps-120-40.png)
+
+
+## 注意
+
+* 为了防止机器学习破解，使用的 `svg-captcha` 包为 [安全修复后](https://juejin.cn/post/6872656117839691789) 的版本。

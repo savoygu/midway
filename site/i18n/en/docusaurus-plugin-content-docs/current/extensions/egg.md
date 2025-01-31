@@ -392,7 +392,7 @@ export default {
   schedule: true
   schedulePlus: {
     enable: true
-    package: midway-schedule
+    package: 'midway-schedule',
   }
 }
 ```
@@ -574,6 +574,29 @@ The original egg uses `EGG_SERVER_ENV` as an environmental sign, please use `MID
 
 
 
+## State type definition
+
+There is a special State attribute in the Context of koa at the bottom of egg. The State definition can be extended in a similar way to Context.
+
+```typescript
+// src/interface.ts
+
+declare module '@midwayjs/web/dist/interface' {
+  interface Context {
+    abc: string;
+  }
+
+  interface State{
+    bbb: string;
+    ccc: number;
+  }
+}
+```
+
+
+
+
+
 ## Configuration
 
 ### Default configuration
@@ -599,6 +622,7 @@ All parameters of `@midwayjs/web` are as follows:
 | hostname | string | The hostname of the listener, the default 127.1 |
 | http2 | boolean | Optional, supported by http2, default false |
 | queryParseMode | simple\|extended | The default is extended |
+| queryParseOptions | `qs.IParseOptions` | Parse options when 'simple' mode is used |
 
 The above attributes are valid for applications deployed locally and using `bootstrap.js`.
 
@@ -726,6 +750,9 @@ export default {
   egg: {
     // ...
     queryParseMode: 'simple',
+    queryParseOptions: {
+      arrayLimit: 100,
+    },
   },
 }
 ```
@@ -805,4 +832,28 @@ await (this.app as any).mysql.query(sql);
 ```
 
 Or you can add extended definitions by yourself.
+
+### 6、Get Http Server
+
+The original HttpServer is sealed inside Eggjs and needs to be accessed through events.
+
+```typescript
+// src/configuration.ts
+import { Configuration, App } from '@midwayjs/core';
+import { Application } from '@midwayjs/web';
+
+@Configuration(/***/)
+export class MainConfiguration {
+  
+  @App('egg')
+  app: Application;
+  
+  // ...
+  async onServerReady() {
+    this.app.once('server', (server) => {
+      // ...
+    })
+  }
+}
+```
 

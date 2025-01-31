@@ -2,6 +2,7 @@ import { createApp, close } from '@midwayjs/mock';
 import { join } from 'path';
 import { sleep } from '@midwayjs/core';
 import * as bull from '../src';
+import { readFileSync } from 'fs';
 
 describe(`/test/index.test.ts`, () => {
   it('test auto repeat processor', async () => {
@@ -13,6 +14,7 @@ describe(`/test/index.test.ts`, () => {
 
     // run job
     const bullFramework = app.getApplicationContext().get(bull.Framework);
+    expect(bullFramework.getCoreLogger()).toBeDefined();
     const testQueue = bullFramework.getQueue('test');
     expect(testQueue).toBeDefined();
 
@@ -37,6 +39,14 @@ describe(`/test/index.test.ts`, () => {
 
     await close(app);
   });
+
+  it('should test throw error when create service', async () => {
+    const app = await createApp(join(__dirname, 'fixtures', 'base-app-error-out-of-job'), {}, bull);
+    await sleep(5 * 1000);
+    expect(readFileSync(join(__dirname, 'fixtures', 'base-app-error-out-of-job', 'logs', 'ali-demo', 'midway-bull.log'), 'utf8').includes('MidwayDefinitionNotFoundError')).toBeTruthy();
+    await close(app);
+  });
+
 });
 
 // describe('test another duplicated error', function () {

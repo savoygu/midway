@@ -8,11 +8,12 @@
 `ServiceFactory` 是个抽象类，每个需要实现的服务，都需要继承他。
 
 
-我们以一个 http 客户端为例，需要准备一个创建 http 客户端实例的方法，其中包含两个部分：
+我们以一个 http 客户端为例，需要准备一个创建 http 客户端实例的方法，其中包含几个部分：
 
 
 - 1、创建客户端实例的方法
 - 2、客户端的配置
+- 3、实例化服务类
 
 ```typescript
 // 创建客户端的配置
@@ -113,6 +114,26 @@ export class HTTPClientServiceFactory extends ServiceFactory<HTTPClient> {
 ```
 `initClients` 方法是基类中实现的，它需要传递一个完整的用户配置，并循环调用 `createClient` 来创建对象，保存到内存中。
 
+
+### 3、实例化服务类
+
+为了方便用户使用，我们还需要提前将服务类创建，一般来说，只需要在组件或者项目的生命周期中实例化即可。
+
+```typescript
+import { Configuration } from '@midwayjs/core';
+
+@Configuration({
+  imports: [
+    // ...
+  ]
+})
+export class ContainerConfiguration {
+  async onReady(container) {
+    // 实例化服务类
+    await container.getAsync(HTTPClientServiceFactory);
+  }
+}
+```
 
 
 ## 获取实例
@@ -441,6 +462,72 @@ export class UserService {
 
   async invoke() {
 		// this.httpClientService 中指向的是 default2
+  }
+}
+```
+
+
+
+## 实例优先级
+
+从 v3.14.0 开始，服务工厂的实例可以增加一个优先级属性，在不同的场景，会根据优先级做一些不同处理。
+
+实例的优先级有 `L1`，`L2`, `L3`三个等级，分别对应高，中，低三个层级。
+
+定义如下：
+
+```typescript
+export const DEFAULT_PRIORITY = {
+  L1: 'High',
+  L2: 'Medium',
+  L3: 'Low',
+};
+```
+
+通过配置，我们可以指定不同实例的优先级。
+
+```typescript
+// config.default.ts
+import { DEFAULT_PRIORITY } from '@midwayjs/core';
+
+export default {
+  httpClient: {
+    clients: {
+      default: {
+        baseUrl: ''
+      },
+      default2: {
+        baseUrl: ''
+      }
+    },
+    clientPriority: {
+      default: DEFAULT_PRIORITY.L1,
+      default2: DEFAULT_PRIORITY.L2,
+    }
+  }
+}
+```
+
+如果不做设置， 默认情况下优先级为中等，即 `DEFAULT_PRIORITY.L2`。
+
+为了更好的判断优先级，`ServiceFactory` 基类中会增加一些方法。
+
+```typescript
+@Provide()
+@Scope(ScopeEnum.Singleton)
+export class HTTPClientService implements HTTPClient {
+  @Inject()
+  private serviceFactory: HTTPClientServiceFactory;
+
+  @Init()
+  async init() {
+    // 获取优先级
+    this.serviceFactory.getClientPriority('default'); // DEFAULT_PRIORITY.L2
+
+    // 判断优先级
+    this.serviceFactory.isHighPriority('default');
+    this.serviceFactory.isMediumPriority('default');
+    this.serviceFactory.isLowPriority('default');
   }
 }
 ```

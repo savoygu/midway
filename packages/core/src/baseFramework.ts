@@ -10,19 +10,15 @@ import {
   CommonFilterUnion,
   MiddlewareRespond,
   CommonGuardUnion,
+  ILogger,
+  MidwayLoggerOptions,
 } from './interface';
 import {
   REQUEST_CTX_LOGGER_CACHE_KEY,
   ASYNC_CONTEXT_KEY,
   ASYNC_CONTEXT_MANAGER_KEY,
 } from './constants';
-import { Inject, Destroy, Init } from './decorator';
-import {
-  ILogger,
-  LoggerOptions,
-  IMidwayLogger,
-  LoggerContextFormat,
-} from '@midwayjs/logger';
+import { Inject, Init } from './decorator';
 import { MidwayRequestContainer } from './context/requestContainer';
 import { MidwayEnvironmentService } from './service/environmentService';
 import { MidwayConfigService } from './service/configService';
@@ -55,7 +51,7 @@ export abstract class BaseFramework<
   protected appLogger: ILogger;
   protected defaultContext = {};
   protected contextLoggerApplyLogger: string;
-  protected contextLoggerFormat: LoggerContextFormat;
+  protected contextLoggerFormat: any;
   protected middlewareManager = this.createMiddlewareManager();
   protected filterManager = this.createFilterManager();
   protected guardManager = this.createGuardManager();
@@ -157,10 +153,8 @@ export abstract class BaseFramework<
   public abstract run(): Promise<void>;
 
   protected createContextLogger(ctx: CTX, name?: string): ILogger {
-    const appLogger = this.getLogger(
-      name ?? this.contextLoggerApplyLogger
-    ) as IMidwayLogger;
-    if (name) {
+    if (name && name !== 'appLogger') {
+      const appLogger = this.getLogger(name);
       let ctxLoggerCache = ctx.getAttr(REQUEST_CTX_LOGGER_CACHE_KEY) as Map<
         string,
         ILogger
@@ -169,35 +163,28 @@ export abstract class BaseFramework<
         ctxLoggerCache = new Map();
         ctx.setAttr(REQUEST_CTX_LOGGER_CACHE_KEY, ctxLoggerCache);
       }
-
-      if (!name) {
-        name = 'appLogger';
-      }
-
       // if logger exists
       if (ctxLoggerCache.has(name)) {
         return ctxLoggerCache.get(name);
       }
 
       // create new context logger
-      const ctxLogger = appLogger.createContextLogger<CTX>(ctx, {
-        contextFormat: this.contextLoggerFormat,
-      });
+      const ctxLogger = this.loggerService.createContextLogger(ctx, appLogger);
       ctxLoggerCache.set(name, ctxLogger);
       return ctxLogger;
     } else {
+      const appLogger = this.getLogger(name ?? this.contextLoggerApplyLogger);
       // avoid maximum call stack size exceeded
       if (ctx['_logger']) {
         return ctx['_logger'];
       }
-      ctx['_logger'] = appLogger.createContextLogger<CTX>(ctx, {
+      ctx['_logger'] = this.loggerService.createContextLogger(ctx, appLogger, {
         contextFormat: this.contextLoggerFormat,
       });
       return ctx['_logger'];
     }
   }
 
-  @Destroy()
   public async stop(): Promise<void> {
     await this.mockService.runSimulatorAppTearDown(this.app);
     await this.beforeStop();
@@ -254,7 +241,7 @@ export abstract class BaseFramework<
         return this.getLogger(name);
       },
 
-      createLogger: (name: string, options: LoggerOptions = {}) => {
+      createLogger: (name: string, options: MidwayLoggerOptions = {}) => {
         return this.createLogger(name, options);
       },
 
@@ -448,7 +435,7 @@ export abstract class BaseFramework<
     return this.logger;
   }
 
-  public createLogger(name: string, option: LoggerOptions = {}) {
+  public createLogger(name: string, option: MidwayLoggerOptions = {}) {
     return this.loggerService.createLogger(name, option);
   }
 

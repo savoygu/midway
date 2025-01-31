@@ -312,7 +312,7 @@ This service is an internal method and cannot be used directly by users.
 
 ## MidwayMockService
 
-Midway's built-in data simulation service is used to simulate data during development and single test.
+Midway's built-in data simulation service is used to simulate data during development and testing.
 
 It can be obtained by injection.
 
@@ -327,26 +327,24 @@ export class HomeController {
 
   @Get('/')
   async home() {
-    // this.mockService.mockProperty(/** 省略 **/);
+    // this.mockService.mockProperty(/** omitted **/);
   }
 }
 ```
 
 API is as follows
 
-| API | Return type | Description |
-| -------------------------------------------- | -------- | ---------------------------------- |
-| mockClassProperty(clzz, propertyName, value) |          | Mock a property on a class (method) |
-| mockProperty(obj, key, value) |          | Mock a property (method) on a normal object |
-| mockContext(app, key, vlue) |          | Properties on mock Context Objects |
-| restore() |          | Empty all mock data |
-
+| API                                          | Return type | Description                               |
+| -------------------------------------------- | ----------- | ----------------------------------------- |
+| mockClassProperty(clzz, propertyName, value, group?) |             | Mock a property (method) on a class, supports grouping, default group is `default` |
+| mockProperty(obj, key, value, group?)        |             | Mock a property (method) on a normal object, supports grouping, default group is `default` |
+| mockContext(app, key, value, group?)         |             | Mock properties on context objects, supports grouping, default group is `default` |
+| restore(group?)                              |             | Restore mock data for the specified group, restore all if not specified |
+| restoreAll()                                 |             | Clear all mock data                       |
 
 ### mockClassProperty
 
-Used to simulate a property or method of a class.
-
-Like a class.
+Used to simulate a property or method of a class. Supports specifying a group through the `group` parameter. If the `group` parameter is not passed, the default group `default` is used.
 
 ```typescript
 @Provide()
@@ -362,7 +360,6 @@ export class UserService {
 We can also simulate in code.
 
 ```typescript
-
 import { MidwayMockService, Provide, Inject } from '@midwayjs/core';
 
 @Provide()
@@ -371,24 +368,22 @@ class TestMockService {
   mockService: MidwayMockService;
 
   mock() {
-    // Simulation method
+    // Simulate property, use default group
     this.mockService.mockClassProperty(UserService, 'getUser', async () => {
       return 'midway';
     });
 
-    // Simulation properties
+    // Simulate property, specify group
     this.mockService.mockClassProperty(UserService, 'data', {
       bbb: '1'
-    });
+    }, 'group2');
   }
 }
 ```
 
-
-
 ### mockProperty
 
-Use `mockProperty` methods to simulate the properties of objects.
+Use the `mockProperty` method to simulate the properties of objects. Supports specifying a group through the `group` parameter.
 
 ```typescript
 import { MidwayMockService, Provide, Inject } from '@midwayjs/core';
@@ -400,27 +395,26 @@ class TestMockService {
 
   mock() {
     const a = {};
-    // Simulation properties
+    // Default group
     this.mockService.mockProperty(a, 'name', 'hello');
+    // Simulate property, custom group
+    this.mockService.mockProperty(a, 'name', 'hello', 'group1');
     // a['name'] => 'hello'
 
-    // Simulation method
+    // Simulate method
     this.mockService.mockProperty(a, 'getUser', async () => {
       return 'midway';
-    });
+    }, 'group2');
     // await a.getUser() => 'midway'
   }
 }
-
 ```
-
-
 
 ### mockContext
 
-Since Midway's Context is associated with app, app instances need to be passed in during simulation.
+Since Midway's Context is associated with app, app instances need to be passed in during simulation. Supports specifying a group through the `group` parameter.
 
-`mockContext` methods are used to simulate the context.
+Use the `mockContext` method to simulate the context.
 
 ```typescript
 import { MidwayMockService, Configuration, App } from '@midwayjs/core';
@@ -434,8 +428,10 @@ export class MainConfiguration {
   app;
 
   async onReady() {
-    // Simulation context
-    mockContext(app, 'user', 'midway');
+    // Simulate context, default group
+    this.mockService.mockContext(app, 'user', 'midway');
+    // Custom group
+    this.mockService.mockContext(app, 'user', 'midway', 'group1');
   }
 }
 
@@ -456,10 +452,10 @@ export class MainConfiguration {
   app;
 
   async onReady() {
-    // Simulation context
-    mockContext(app, (ctx) => {
+    // Simulate context
+    this.mockService.mockContext(app, (ctx) => {
       ctx.user = 'midway';
-    });
+    }, 'group2');
   }
 }
 
@@ -555,3 +551,86 @@ API is as follows
 
 For more information, see [Web route table](# router_table).
 
+
+
+## MidwayHealthService
+
+Midway's built-in health check execution service is used for externally extended health check capabilities.
+
+A complete health check consists of two parts:
+
+* 1. The trigger end of the health check, such as an external scheduled request, is usually an Http interface
+* 2. The execution end of the health check usually checks whether specific items are normal in each component or business.
+
+`MidwayHealthService` is generally used as the trigger end of health check. The content described below is generally implemented on the trigger end.
+
+It can be obtained through injection and then perform health check tasks.
+
+```typescript
+import { MidwayHealthService, Configuration, Inject } from '@midwayjs/core';
+
+@Configuration({
+  // ...
+})
+export class MainConfiguration {
+  @Inject()
+  healthService: MidwayHealthService;
+
+  async onServerReady() {
+    setInterval(() => {
+      const results = await this.healthService.getStatus();
+      
+      // console.log(results);
+      // =>
+      // {
+      //   "status": false
+      //   "namespace": "redis",
+      //   "reason": "health check timeout",
+      //   "results": [
+      //      {
+      //        "status": false
+      //        "reason": "health check timeout",
+      //        "namespace": "redis"
+      //      }
+      //    ]
+      // }
+      
+    }, 1000);
+    // ...
+  }
+}
+```
+
+The API is as follows
+
+| API                              | Return Type             | Description                |
+| -------------------------------- |-------------------------| -------------------------- |
+| getStatus()                      | Promise<HealthResults\> | Dynamically add a function |
+| setCheckTimeout(timeout: number) | void                    | Set timeout                |
+
+The `getStatus` method is used to externally call the `onHealthCheck` method in polling `configuration` and return a data that conforms to the `HealthResults` structure.
+
+  `HealthResults` contains several fields. `status` indicates whether the check is successful. If it fails, `reason` indicates the reason for the first failed component. `namespace` represents the name of the first failed component. `results` It means that all the returned items are checked this time, and the structure of the returned items is the same as the external one.
+
+When executing the process, if the following conditions occur in the `onHealthCheck` method, it will be marked as failed.
+
+* 1. No data conforming to the `HealthResult` structure was returned.
+* 2. No value returned
+* 3. Execution timeout
+* 4. Throw an error
+* 5. Return error data that conforms to the `HealthResult` structure, such as `{status: false}`
+
+The default waiting timeout for health checks is 1s.
+
+Can be overridden using global configuration.
+
+```typescript
+//config.default
+export default {
+   core: {
+     healthCheckTimeout: 2000,
+   }
+};
+```
+
+The execution end of the health check is implemented in the life cycle of the business or component. For details, please see [Life Cycle](/docs/lifecycle#onhealthcheck).

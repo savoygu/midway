@@ -1,12 +1,8 @@
 import { Consumer, ConsumerConfig, Kafka, KafkaConfig } from 'kafkajs';
-import { ILogger } from '@midwayjs/logger';
-import { IKafkaApplication } from './interface';
+import { ILogger } from '@midwayjs/core';
 import { EventEmitter } from 'stream';
 
-export class KafkaConsumerServer
-  extends EventEmitter
-  implements IKafkaApplication
-{
+export class KafkaConsumerServer extends EventEmitter {
   protected loggers: ILogger;
   public connection: Consumer = null;
 

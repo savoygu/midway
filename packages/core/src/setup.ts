@@ -19,6 +19,7 @@ import {
   loadModule,
   safeRequire,
   isTypeScriptEnvironment,
+  MidwayPriorityManager,
 } from './';
 import defaultConfig from './config/config.default';
 import {
@@ -29,6 +30,11 @@ import {
 import * as util from 'util';
 import { MidwayServerlessFunctionService } from './service/slsFunctionService';
 import { join } from 'path';
+import { MidwayHealthService } from './service/healthService';
+import {
+  MidwayInitializerPerformanceManager,
+  MidwayPerformanceManager,
+} from './common/performanceManager';
 const debug = util.debuglog('midway:debug');
 
 let stepIdx = 1;
@@ -43,11 +49,19 @@ function printStepDebugInfo(stepInfo: string) {
 export async function initializeGlobalApplicationContext(
   globalOptions: IMidwayBootstrapOptions
 ): Promise<IMidwayContainer> {
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.INITIALIZE
+  );
+
   const applicationContext = await prepareGlobalApplicationContextAsync(
     globalOptions
   );
 
   printStepDebugInfo('Init logger');
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.LOGGER_PREPARE
+  );
 
   // init logger
   const loggerService = await applicationContext.getAsync(MidwayLoggerService, [
@@ -63,6 +77,10 @@ export async function initializeGlobalApplicationContext(
     );
   }
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.LOGGER_PREPARE
+  );
+
   printStepDebugInfo('Init MidwayMockService');
 
   // mock support
@@ -70,20 +88,40 @@ export async function initializeGlobalApplicationContext(
 
   printStepDebugInfo('Init framework');
 
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.FRAMEWORK_PREPARE
+  );
+
   // framework/config/plugin/logger/app decorator support
   await applicationContext.getAsync(MidwayFrameworkService, [
     applicationContext,
     globalOptions,
   ]);
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.FRAMEWORK_PREPARE
+  );
+
   printStepDebugInfo('Init lifecycle');
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.LIFECYCLE_PREPARE
+  );
 
   // lifecycle support
   await applicationContext.getAsync(MidwayLifeCycleService, [
     applicationContext,
   ]);
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.LIFECYCLE_PREPARE
+  );
+
   printStepDebugInfo('Init preload modules');
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.PRELOAD_MODULE_PREPARE
+  );
 
   // some preload module init
   const modules = listPreloadModule();
@@ -92,7 +130,15 @@ export async function initializeGlobalApplicationContext(
     await applicationContext.getAsync(module);
   }
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.PRELOAD_MODULE_PREPARE
+  );
+
   printStepDebugInfo('End of initialize and start');
+
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.INITIALIZE
+  );
 
   return applicationContext;
 }
@@ -112,6 +158,8 @@ export async function destroyGlobalApplicationContext(
   await applicationContext.stop();
   clearBindContainer();
   loggerFactory.close();
+  MidwayPerformanceManager.cleanAll();
+
   global['MIDWAY_APPLICATION_CONTEXT'] = undefined;
   global['MIDWAY_MAIN_FRAMEWORK'] = undefined;
 }
@@ -130,6 +178,10 @@ export async function prepareGlobalApplicationContextAsync(
   const appDir = globalOptions.appDir ?? '';
   const baseDir = globalOptions.baseDir ?? '';
 
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.METADATA_PREPARE
+  );
+
   // new container
   const applicationContext =
     globalOptions.applicationContext ?? new MidwayContainer();
@@ -143,7 +195,17 @@ export async function prepareGlobalApplicationContextAsync(
   applicationContext.registerObject('baseDir', baseDir);
   applicationContext.registerObject('appDir', appDir);
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.METADATA_PREPARE
+  );
+
   debug('[core]: set default file detector');
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DETECTOR_PREPARE
+  );
+
+  printStepDebugInfo('Ready module detector');
 
   if (!globalOptions.moduleLoadType) {
     globalOptions.moduleLoadType = 'commonjs';
@@ -188,6 +250,10 @@ export async function prepareGlobalApplicationContextAsync(
     }
   }
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DETECTOR_PREPARE
+  );
+
   printStepDebugInfo('Binding inner service');
 
   // bind inner service
@@ -204,6 +270,8 @@ export async function prepareGlobalApplicationContextAsync(
   applicationContext.bindClass(MidwayMockService);
   applicationContext.bindClass(MidwayWebRouterService);
   applicationContext.bindClass(MidwayServerlessFunctionService);
+  applicationContext.bindClass(MidwayHealthService);
+  applicationContext.bindClass(MidwayPriorityManager);
 
   printStepDebugInfo('Binding preload module');
 
@@ -217,6 +285,10 @@ export async function prepareGlobalApplicationContextAsync(
   printStepDebugInfo(
     'Init MidwayConfigService, MidwayAspectService and MidwayDecoratorService'
   );
+
+  // init default environment
+  const environmentService = applicationContext.get(MidwayEnvironmentService);
+  environmentService.setModuleLoadType(globalOptions.moduleLoadType);
 
   // init default config
   const configService = applicationContext.get(MidwayConfigService);
@@ -242,8 +314,20 @@ export async function prepareGlobalApplicationContextAsync(
 
   printStepDebugInfo('Run applicationContext ready method');
 
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DEFINITION_PREPARE
+  );
+
   // bind user code module
   await applicationContext.ready();
+
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DEFINITION_PREPARE
+  );
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.CONFIG_LOAD
+  );
 
   if (globalOptions.globalConfig) {
     if (Array.isArray(globalOptions.globalConfig)) {
@@ -259,8 +343,13 @@ export async function prepareGlobalApplicationContextAsync(
   configService.load();
   debug('[core]: Current config = %j', configService.getConfiguration());
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.CONFIG_LOAD
+  );
+
   // middleware support
   applicationContext.get(MidwayMiddlewareService, [applicationContext]);
+
   return applicationContext;
 }
 
@@ -278,6 +367,10 @@ export function prepareGlobalApplicationContext(
   const appDir = globalOptions.appDir ?? '';
   const baseDir = globalOptions.baseDir ?? '';
 
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.METADATA_PREPARE
+  );
+
   // new container
   const applicationContext =
     globalOptions.applicationContext ?? new MidwayContainer();
@@ -291,7 +384,19 @@ export function prepareGlobalApplicationContext(
   applicationContext.registerObject('baseDir', baseDir);
   applicationContext.registerObject('appDir', appDir);
 
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.METADATA_PREPARE
+  );
+
   printStepDebugInfo('Ready module detector');
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DETECTOR_PREPARE
+  );
+
+  if (!globalOptions.moduleLoadType) {
+    globalOptions.moduleLoadType = 'commonjs';
+  }
 
   if (globalOptions.moduleDetector !== false) {
     if (globalOptions.moduleDetector === undefined) {
@@ -304,6 +409,10 @@ export function prepareGlobalApplicationContext(
       applicationContext.setFileDetector(globalOptions.moduleDetector);
     }
   }
+
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DETECTOR_PREPARE
+  );
 
   printStepDebugInfo('Binding inner service');
 
@@ -321,6 +430,8 @@ export function prepareGlobalApplicationContext(
   applicationContext.bindClass(MidwayMockService);
   applicationContext.bindClass(MidwayWebRouterService);
   applicationContext.bindClass(MidwayServerlessFunctionService);
+  applicationContext.bindClass(MidwayHealthService);
+  applicationContext.bindClass(MidwayPriorityManager);
 
   printStepDebugInfo('Binding preload module');
 
@@ -369,8 +480,20 @@ export function prepareGlobalApplicationContext(
 
   printStepDebugInfo('Run applicationContext ready method');
 
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DEFINITION_PREPARE
+  );
+
   // bind user code module
   applicationContext.ready();
+
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.DEFINITION_PREPARE
+  );
+
+  MidwayInitializerPerformanceManager.markStart(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.CONFIG_LOAD
+  );
 
   if (globalOptions.globalConfig) {
     if (Array.isArray(globalOptions.globalConfig)) {
@@ -385,6 +508,10 @@ export function prepareGlobalApplicationContext(
   // merge config
   configService.load();
   debug('[core]: Current config = %j', configService.getConfiguration());
+
+  MidwayInitializerPerformanceManager.markEnd(
+    MidwayInitializerPerformanceManager.MEASURE_KEYS.CONFIG_LOAD
+  );
 
   // middleware support
   applicationContext.get(MidwayMiddlewareService, [applicationContext]);

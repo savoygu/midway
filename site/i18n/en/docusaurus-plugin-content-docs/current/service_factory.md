@@ -8,11 +8,12 @@ for example, our oss component creates multiple oss objects, so you need to leav
 `ServiceFactory` is an abstract class, and every service that needs to be implemented needs to be inherited.
 
 
-Take an http client as an example, we need to prepare a method to create an http client instance, which contains two parts:
+Take an http client as an example, we need to prepare a method to create an http client instance, which contains several parts:
 
 
 - 1. Method for creating a client instance
 - 2. Configuration of Client
+- 3. Instantiate service class
 
 ```typescript
 // Create client configuration
@@ -112,6 +113,27 @@ export class HTTPClientServiceFactory extends ServiceFactory<HTTPClient> {
 }
 ```
 `initClients` method is implemented in the base class. It needs to pass a complete user configuration and call the `createClient` in a loop to create the object and save it to memory.
+
+
+### 3. Instantiate service class
+
+To make it easier for users to use, we also need to create the service class in advance. Generally speaking, we only need to instantiate it in the lifecycle of components or projects.
+
+```typescript
+import { Configuration } from '@midwayjs/core';
+
+@Configuration({
+  imports: [
+    // ...
+  ]
+})
+export class ContainerConfiguration {
+  async onReady(container) {
+    // Instantiate service class
+    await container.getAsync(HTTPClientServiceFactory);
+  }
+}
+```
 
 
 ## Get instance
@@ -440,5 +462,71 @@ export class UserService {
   async invoke() {
     // this.httpClientService points to default2
   }
+}
+```
+
+
+
+## Instance priority
+
+Starting from v3.14.0, service factory instances can add a priority attribute. In different scenarios, some different processing will be done based on the priority.
+
+There are three levels of priority for instances: `L1`, `L2`, and `L3`, which correspond to high, medium, and low levels respectively.
+
+The definition is as follows:
+
+```typescript
+export const DEFAULT_PRIORITY = {
+   L1: 'High',
+   L2: 'Medium',
+   L3: 'Low',
+};
+```
+
+Through configuration, we can specify the priority of different instances.
+
+```typescript
+//config.default.ts
+import { DEFAULT_PRIORITY } from '@midwayjs/core';
+
+export default {
+   httpClient: {
+     clients: {
+       default: {
+         baseUrl: ''
+       },
+       default2: {
+         baseUrl: ''
+       }
+     },
+     clientPriority: {
+       default: DEFAULT_PRIORITY.L1,
+       default2: DEFAULT_PRIORITY.L2,
+     }
+   }
+}
+```
+
+If no setting is made, the default priority is medium, that is, `DEFAULT_PRIORITY.L2`.
+
+In order to better judge the priority, some methods will be added to the `ServiceFactory` base class.
+
+```typescript
+@Provide()
+@Scope(ScopeEnum.Singleton)
+export class HTTPClientService implements HTTPClient {
+   @Inject()
+   private serviceFactory: HTTPClientServiceFactory;
+
+   @Init()
+   async init() {
+     // Get priority
+     this.serviceFactory.getClientPriority('default'); // DEFAULT_PRIORITY.L2
+
+     // Determine priority
+     this.serviceFactory.isHighPriority('default');
+     this.serviceFactory.isMediumPriority('default');
+     this.serviceFactory.isLowPriority('default');
+   }
 }
 ```

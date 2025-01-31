@@ -12,7 +12,7 @@
     <a href="https://github.com/midwayjs/midway/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
     <a href="https://gitpod.io/#https://github.com/midwayjs/midway"><img src="https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod" alt="Gitpod Ready-to-Code"></a>
     <a href="https://github.com/midwayjs/mwts"><img src="https://img.shields.io/badge/code%20style-midwayjs-brightgreen.svg" alt="Code Style: MidwayJS"></a>
-    <a href="https://opensource.alibaba.com/contribution_leaderboard/details?projectValue=midway"><img src="https://img.shields.io/badge/Midway-%E6%9F%A5%E7%9C%8B%E8%B4%A1%E7%8C%AE%E6%8E%92%E8%A1%8C%E6%A6%9C-orange" alt="Leaderboard">
+    <a href="https://opensource.alibaba.com/contribution_leaderboard/details?projectValue=midway"><img src="https://img.shields.io/badge/Midway-%E6%9F%A5%E7%9C%8B%E8%B4%A1%E7%8C%AE%E6%8E%92%E8%A1%8C%E6%A6%9C-orange" alt="Leaderboard"></a>
 </p>
 
 [English](./README.en-US.md) | 简体中文
@@ -116,11 +116,8 @@ fetch('/api/articles?page=0&limit=10')
 ```bash
 $ npm -v
 
-# 如果是 npm v6
-$ npm init midway --type=web my_midway_app
-
-# 如果是 npm v7
-$ npm init midway -- --type=web my_midway_app
+## 选择模版
+$ npm init midway
 
 ## 进入项目路径
 cd my_midway_app && npm run dev
@@ -130,12 +127,6 @@ cd my_midway_app && npm run dev
 
 - [官网](https://midwayjs.org)
 - [备用官网](https://beta.midwayjs.org)
-
-## 官方示例
-
-![midway-examples](https://img.alicdn.com/imgextra/i1/O1CN01Q0M4Ma27FnIgiXE4a_!!6000000007768-0-tps-3802-1996.jpg)
-
-请访问 [midway-examples](http://demo.midwayjs.org/)
 
 
 ## 社区优秀示例展示
@@ -156,15 +147,15 @@ cd my_midway_app && npm run dev
 
 群里会有热心的朋友，也会有新版本发布推送。
 
-![](https://img.alicdn.com/imgextra/i3/O1CN01F2EYhK1t290OXO4am_!!6000000005843-0-tps-3916-3220.jpg)
+![](https://img.alicdn.com/imgextra/i3/O1CN01LyI8r91S91RsKsD29_!!6000000002203-0-tps-3916-2480.jpg)
 
 ## 贡献
 
 <a href="https://github.com/midwayjs/midway/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=midwayjs/midway" />
+  <img src="https://contrib.rocks/image?repo=midwayjs/midway&max=200" />
 </a>
 
-请告知我们可以为你做些什么，不过在此之前，请检查一下是否有 [已经存在的Bug或者意见](http://github.com/midwayjs/midway/issues)。
+请告知我们可以为你做些什么，不过在此之前，请检查一下是否有 [已经存在的Bug或者意见](https://github.com/midwayjs/midway/issues)。
 
 如果你是一个代码贡献者，请参考代码贡献规范。
 
@@ -175,6 +166,6 @@ cd my_midway_app && npm run dev
 
 ## License
 
-我们的代码使用 [MIT](http://github.com/midwayjs/midway/blob/master/LICENSE) 协议，请放心使用。
+我们的代码使用 [MIT](https://github.com/midwayjs/midway/blob/master/LICENSE) 协议，请放心使用。
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmidwayjs%2Fmidway.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmidwayjs%2Fmidway?ref=badge_large)

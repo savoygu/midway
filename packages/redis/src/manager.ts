@@ -1,16 +1,17 @@
 import {
   Config,
+  delegateTargetAllPrototypeMethod,
+  delegateTargetMethod,
   Init,
   Inject,
   Logger,
+  MidwayCommonError,
   Provide,
   Scope,
   ScopeEnum,
   ServiceFactory,
-  delegateTargetAllPrototypeMethod,
-  delegateTargetMethod,
-  MidwayCommonError,
   ServiceFactoryConfigOption,
+  ILogger,
 } from '@midwayjs/core';
 import Redis from 'ioredis';
 import * as assert from 'assert';
@@ -20,17 +21,17 @@ import { RedisConfigOptions } from './interface';
 @Scope(ScopeEnum.Singleton)
 export class RedisServiceFactory extends ServiceFactory<Redis> {
   @Config('redis')
-  redisConfig: ServiceFactoryConfigOption<RedisConfigOptions>;
+  protected redisConfig: ServiceFactoryConfigOption<RedisConfigOptions>;
 
   @Init()
-  async init() {
+  protected async init() {
     await this.initClients(this.redisConfig);
   }
 
   @Logger('coreLogger')
-  logger;
+  protected logger: ILogger;
 
-  async createClient(config): Promise<Redis> {
+  protected async createClient(config): Promise<Redis> {
     let client;
 
     if (config.cluster === true) {
@@ -93,9 +94,14 @@ export class RedisServiceFactory extends ServiceFactory<Redis> {
     return 'redis';
   }
 
-  async destroyClient(redisInstance) {
+  protected async destroyClient(redisInstance) {
     try {
-      await (redisInstance && redisInstance.quit());
+      if (redisInstance) {
+        const canQuit = !['end', 'close'].includes(redisInstance.status);
+        if (canQuit) {
+          await redisInstance.quit();
+        }
+      }
     } catch (error) {
       this.logger.error('[midway:redis] Redis quit failed.', error);
     }

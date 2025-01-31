@@ -21,7 +21,7 @@ import {
   isTypeScriptEnvironment,
 } from '@midwayjs/core';
 import { isAbsolute, join, resolve } from 'path';
-import { clearAllLoggers } from '@midwayjs/logger';
+import { clearAllLoggers, loggers } from '@midwayjs/logger';
 import {
   ComponentModule,
   MockAppConfigurationOptions,
@@ -131,6 +131,9 @@ export async function create<
     }
 
     if (options.baseDir) {
+      if (!isAbsolute(options.baseDir)) {
+        options.baseDir = join(appDir, options.baseDir);
+      }
       await loadModule(
         join(`${options.baseDir}`, getFileNameWithSuffix('interface')),
         {
@@ -139,7 +142,7 @@ export async function create<
         }
       );
     } else if (appDir) {
-      options.baseDir = `${appDir}/src`;
+      options.baseDir = join(appDir, 'src');
       await loadModule(
         join(`${options.baseDir}`, getFileNameWithSuffix('interface')),
         {
@@ -214,6 +217,7 @@ export async function create<
       ...options,
       appDir,
       asyncContextManager: createContextManager(),
+      loggerFactory: loggers,
       imports: [].concat(options.imports).concat(
         options.baseDir
           ? await loadModule(
@@ -442,33 +446,45 @@ export async function createFunctionApp<
             return options.starter?.createDefaultMockContext() || {};
           };
 
-          const ctx = await framework.wrapHttpRequest(req);
+          try {
+            const ctx = await framework.wrapHttpRequest(req);
 
-          // create event and invoke
-          const result = await framework.invokeTriggerFunction(
-            ctx,
-            url.pathname,
-            {
-              isHttpFunction: true,
+            // create event and invoke
+            const result = await framework.invokeTriggerFunction(
+              ctx,
+              url.pathname,
+              {
+                isHttpFunction: true,
+              }
+            );
+            const { statusCode, headers, body, isBase64Encoded } =
+              result as any;
+            if (res.headersSent) {
+              return;
             }
-          );
-          const { statusCode, headers, body, isBase64Encoded } = result as any;
-          if (res.headersSent) {
-            return;
-          }
 
-          for (const key in headers) {
-            res.setHeader(key, headers[key]);
-          }
-          if (res.statusCode !== statusCode) {
-            res.statusCode = statusCode;
-          }
+            for (const key in headers) {
+              res.setHeader(key, headers[key]);
+            }
+            if (res.statusCode !== statusCode) {
+              res.statusCode = statusCode;
+            }
 
-          // http trigger only support `Buffer` or a `string` or a `stream.Readable`
-          if (isBase64Encoded && typeof body === 'string') {
-            res.end(Buffer.from(body, 'base64'));
-          } else {
-            res.end(body);
+            // http trigger only support `Buffer` or a `string` or a `stream.Readable`
+            if (isBase64Encoded && typeof body === 'string') {
+              res.end(Buffer.from(body, 'base64'));
+            } else {
+              res.end(body);
+            }
+          } catch (err) {
+            if (/favicon\.ico not found/.test(err.message)) {
+              res.statusCode = 404;
+              res.end();
+              return;
+            }
+            console.error(err);
+            res.statusCode = err.status || 500;
+            res.end(err.message);
           }
         };
       };
@@ -630,13 +646,18 @@ class BootstrapAppStarter implements IBootstrapAppStarter {
 
 /**
  * Create a real project but not ready or a virtual project
- * @param baseDir
+ * @param baseDirOrOptions
  * @param options
  */
 export async function createLightApp(
-  baseDir = '',
+  baseDirOrOptions: string | MockAppConfigurationOptions,
   options: MockAppConfigurationOptions = {}
 ): Promise<IMidwayApplication> {
+  if (baseDirOrOptions && typeof baseDirOrOptions === 'object') {
+    options = baseDirOrOptions;
+    baseDirOrOptions = options.baseDir || '';
+  }
+
   Framework()(LightFramework);
   options.globalConfig = Object.assign(
     {
@@ -660,7 +681,7 @@ export async function createLightApp(
     options.moduleLoadType = pkgJSON?.type === 'module' ? 'esm' : 'commonjs';
   }
 
-  return createApp(baseDir, {
+  return createApp(baseDirOrOptions as string, {
     ...options,
     imports: [
       await transformFrameworkToConfiguration(

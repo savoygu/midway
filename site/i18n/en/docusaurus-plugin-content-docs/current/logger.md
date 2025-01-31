@@ -1,4 +1,10 @@
-# Log
+# Logger
+
+:::tip
+
+This document is for `@midwayjs/logger` v2.0 version.
+
+:::
 
 Midway provides a unified log access method for different scenarios. The `@midwayjs/logger` package export method allows you to easily access log systems in different scenarios.
 
@@ -13,7 +19,7 @@ The functions realized are:
 
 
 
-## Log path and file
+## Loger path and file
 
 Midway creates some default files in the log root directory.
 
@@ -26,7 +32,7 @@ The **Log Path** and **Log Level** of local development and server deployment ar
 
 
 
-## Default log object
+## Default loger object
 
 Midway provides three different logs in the framework by default, corresponding to three different behaviors.
 
@@ -34,7 +40,7 @@ Midway provides three different logs in the framework by default, corresponding 
 | ----------------------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | coreLogger | Framework, component-level logs | By default, the console log and text log `midway-core.log` are output, and the error log is sent to `common-error.log` by default.  | Frames and component errors are generally printed into them.  |
 | appLogger | Logs at the business level | The `midway-app.log` of the console log and text log is output by default, and the error log is sent to `common-error.log` by default.  | The log used by the business. Generally, the business log will be printed in it.  |
-| Context Log (Configuration of Multiplexing appLogger) | Log of request link | By default, `appLogger` is used for output. In addition to sending error logs to `common-error.log`, context information is added.  | Modify the label (Label) of log output. Different frameworks have different request labels. For example, under HTTP, routing information will be output. |
+| Context Logger (Configuration of Multiplexing appLogger) | Log of request link | By default, `appLogger` is used for output. In addition to sending error logs to `common-error.log`, context information is added.  | Modify the label (Label) of log output. Different frameworks have different request labels. For example, under HTTP, routing information will be output. |
 
 
 

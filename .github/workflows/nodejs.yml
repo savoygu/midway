@@ -4,10 +4,12 @@ on:
   push:
     branches: [main]
     paths-ignore:
+      - .github/workflows/site.yml
       - 'site/**'
       - '*.md'
   pull_request:
     paths-ignore:
+      - .github/workflows/site.yml
       - 'site/**'
       - '*.md'
 
@@ -16,7 +18,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        node-version: [16, 18]
+        node-version: [16, 18, 'lts/*']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     services:
@@ -82,17 +84,25 @@ jobs:
 
     steps:
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@v1.10.0
+        uses: supercharge/mongodb-github-action@1.11.0
         with:
           mongodb-version: 4.2
+
+      - name: Start Mosquitto
+        uses: namoshek/mosquitto-github-action@v1
+        with:
+          version: 'latest'
+          ports: '1883:1883 8883:8883'
+          config: ${{ github.workspace }}/packages/mqtt/scripts/mosquitto.conf
+          container-name: 'mqtt'
 
       - run: npm run install_npm
       - run: npm install && npm install codecov
@@ -110,7 +120,7 @@ jobs:
           ALI_SDK_STS_BUCKET: ${{ secrets.ALI_SDK_STS_BUCKET }}
           ALI_SDK_STS_ROLE: ${{ secrets.ALI_SDK_STS_ROLE }}
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
 #
 #   build-windows:

@@ -1,19 +1,27 @@
-import { Configuration, Inject } from '@midwayjs/core';
-import { MidwayKafkaFramework } from './framework';
+import { Configuration, IMidwayContainer } from '@midwayjs/core';
+import { KafkaProducerFactory } from './service';
 
 @Configuration({
   namespace: 'kafka',
   importConfigs: [
     {
       default: {
-        kafka: {},
+        kafka: {
+          contextLoggerApplyLogger: 'kafkaLogger',
+        },
+        midwayLogger: {
+          clients: {
+            kafkaLogger: {
+              fileLogName: 'midway-kafka.log',
+            },
+          },
+        },
       },
     },
   ],
 })
 export class KafkaConfiguration {
-  @Inject()
-  framework: MidwayKafkaFramework;
-
-  async onReady() {}
+  async onReady(container: IMidwayContainer) {
+    await container.getAsync(KafkaProducerFactory);
+  }
 }

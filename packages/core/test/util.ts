@@ -14,31 +14,12 @@ import {
   Inject,
   sleep,
   IMidwayContainer,
-  LoggerFactory,
   loadModule,
+  DefaultConsoleLoggerFactory,
 } from '../src';
 import { join } from 'path';
 import * as http from 'http';
 import * as getRawBody from 'raw-body';
-import { loggers, LoggerOptions, IMidwayLogger } from '@midwayjs/logger';
-
-export class MidwayLoggerFactory extends LoggerFactory<IMidwayLogger, LoggerOptions> {
-  createLogger(name: string, options: LoggerOptions) {
-    return loggers.createLogger(name, options) as IMidwayLogger;
-  }
-  getLogger(loggerName: string) {
-    return loggers.getLogger(loggerName) as IMidwayLogger;
-  }
-
-  close(loggerName: string | undefined) {
-    loggers.close();
-  }
-
-  removeLogger(loggerName: string) {
-    loggers.removeLogger(loggerName);
-  }
-}
-
 
 /**
  * 任意一个数组中的对象，和预期的对象属性一致即可
@@ -82,7 +63,7 @@ function deepEqual(x, y) {
   ) : (x === y);
 }
 
-export async function createLightFramework(baseDir: string = '', globalConfig: any = {}): Promise<IMidwayFramework<any, any, any>> {
+export async function createLightFramework(baseDir: string = '', bootstrapOptions: IMidwayBootstrapOptions = {}): Promise<IMidwayFramework<any, any, any>> {
   /**
    * 一个全量的空框架
    */
@@ -172,15 +153,15 @@ export async function createLightFramework(baseDir: string = '', globalConfig: a
     baseDir,
     imports,
     applicationContext: container,
-    globalConfig,
-    loggerFactory: new MidwayLoggerFactory(),
+    loggerFactory: new DefaultConsoleLoggerFactory(),
     moduleLoadType: loadMode,
+    ...bootstrapOptions,
   });
 
   return container.getAsync(EmptyFramework as any);
 }
 
-export async function createFramework(baseDir: string = '', globalConfig: any = {}): Promise<IMidwayContainer> {
+export async function createFramework(baseDir: string = '', globalConfig: any = {}, loggerFactory?): Promise<IMidwayContainer> {
   const container = new MidwayContainer();
   const bindModuleMap: WeakMap<any, boolean> = new WeakMap();
   // 这里设置是因为在 midway 单测中会不断的复用装饰器元信息，又不能清理缓存，所以在这里做一些过滤
@@ -208,6 +189,7 @@ export async function createFramework(baseDir: string = '', globalConfig: any = 
     ],
     applicationContext: container,
     globalConfig,
+    loggerFactory,
   });
 }
 
